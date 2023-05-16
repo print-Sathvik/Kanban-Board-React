@@ -14,7 +14,9 @@ const initializeAllBoards = async (
   try {
     const response = await getBoards();
     setAllBoardsCB(
-      response.results.filter((board: Board) => board.title !== "TODO TODO")
+      response.results
+        .filter((board: Board) => board.title !== "TODO TODO")
+        .sort((a: Board, b: Board) => a.id - b.id)
     );
   } catch (error) {
     console.log(error);
@@ -45,7 +47,7 @@ export default function Home(props: { currentUser: User | null }) {
         .map((board: Board) => (
           <div
             key={board.id}
-            className="flex"
+            className="flex cursor-pointer"
             onClick={(_) => navigate(`/boards/${board.id}`)}
           >
             <h2 className="py-4 px-2 flex-1">

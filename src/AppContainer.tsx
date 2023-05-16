@@ -8,6 +8,7 @@ export default function AppContainer(props: {
 }) {
   if (props.currentUser && props.currentUser.username.length === 0)
     navigate("/login");
+    
   return (
     <div className="h-screen bg-gray-100">
       <Header currentUser={props.currentUser} />

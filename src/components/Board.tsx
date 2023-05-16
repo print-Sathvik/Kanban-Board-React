@@ -262,7 +262,7 @@ function Board(props: { id: number }) {
               addTasksCB={(form: FormPost) =>
                 addTask(props.id, stage.id, form, dispatchTasks)
               }
-              removeStageCB={(id) => removeStage(id)}
+              removeStageCB={(id) => removeStage(id).then(res => dispatch({type:"removeStage", id: id}))}
               updateStageCB={(form: FormPost) =>
                 dispatch({
                   type: "updateStage",
