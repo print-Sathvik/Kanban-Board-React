@@ -37,6 +37,7 @@ export const request = async (
     body: method !== "GET" ? payload : null,
   });
   if (response.ok) {
+    if (method === "DELETE") return {};
     const jsonResponse = await response.json();
     return jsonResponse;
   } else {
@@ -63,11 +64,11 @@ export const getBoards = () => {
 };
 
 export const getBoard = (id: number) => {
-  return request(`boards/${id}`, "GET");
+  return request(`boards/${id}/`, "GET");
 };
 
 export const deleteBoard = (id: number) => {
-  return request(`boards/${id}`, "DELETE");
+  return request(`boards/${id}/`, "DELETE");
 };
 
 export const getStages = () => {
@@ -75,15 +76,16 @@ export const getStages = () => {
 };
 
 export const createStage = (stage: FormPost) => {
+  //TODO
   return request("status/", "POST", stage);
 };
 
 export const deleteStage = (id: number) => {
-  return request(`status/${id}`, "DELETE");
+  return request(`status/${id}/`, "DELETE");
 };
 
 export const updateStage = (id: number, form: FormPost) => {
-  return request(`status/${id}`, "PUT", form);
+  return request(`status/${id}/`, "PUT", form);
 };
 
 export const createTask = (boards_pk: number, task: TaskPost) => {
@@ -92,4 +94,16 @@ export const createTask = (boards_pk: number, task: TaskPost) => {
 
 export const getTasks = (boards_pk: number) => {
   return request(`boards/${boards_pk}/tasks/`, "GET");
+};
+
+export const updateTask = (
+  boards_pk: number,
+  task_id: number,
+  task: TaskPost
+) => {
+  return request(`boards/${boards_pk}/tasks/${task_id}/`, "PUT", task);
+};
+
+export const deleteTask = (boards_pk: number, task_id: number) => {
+  return request(`boards/${boards_pk}/tasks/${task_id}/`, "DELETE");
 };

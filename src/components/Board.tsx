@@ -11,24 +11,27 @@ import {
   getBoard,
   getStages,
   getTasks,
+  updateTask,
 } from "../utils/apiUtils";
 import Modal from "./common/Modal";
-import CreateBoard from "./CreateBoard";
+import CreateBoard from "./forms/CreateBoard";
+import { DragDropContext } from "react-beautiful-dnd";
 
 const initializeBoard = async (
-  id: number,
+  boardId: number,
   dispatchCB: React.Dispatch<BoardActions>
 ) => {
   try {
-    const board = await getBoard(id);
-    const allStages = await getStages();
+    const board = await getBoard(boardId);
+    const allStagesofAllBoards = await getStages();
+    const allStages = allStagesofAllBoards.results.filter(
+      (stage: StageType) => String(boardId) === stage.description.split(" ")[0]
+    );
     dispatchCB({
       type: "renderBoard",
       board: {
         ...board,
-        stages: allStages.results.sort(
-          (a: StageType, b: StageType) => a.id - b.id
-        ),
+        stages: allStages.sort((a: StageType, b: StageType) => a.id - b.id),
       },
     });
   } catch (error) {
@@ -38,10 +41,15 @@ const initializeBoard = async (
 
 const addStage = async (
   stage: FormPost,
+  boardId: number,
   dispatchCB: React.Dispatch<BoardActions>
 ) => {
   try {
-    const addedStage = await createStage(stage);
+    const newStage = {
+      ...stage,
+      description: String(boardId) + " " + stage.description,
+    };
+    const addedStage = await createStage(newStage);
     dispatchCB({
       type: "addStage",
       id: addedStage.id,
@@ -61,13 +69,27 @@ const removeStage = async (id: number) => {
   }
 };
 
+const parseTasks = (tasks: TaskType[]) => {
+  let tags: string, colors: string;
+  for (let i = 0; i < tasks.length; i++) {
+    [tasks[i].image, tags, colors, tasks[i].description] =
+      tasks[i].description.split("||");
+    tasks[i].tags = tags ? tags.split(";") : [];
+    tasks[i].colors = colors ? colors.split(";") : [];
+  }
+  return tasks;
+};
+
 const initializeTasks = async (
   boards_pk: number,
   dispatchTasksCB: React.Dispatch<TaskActions>
 ) => {
   try {
     const allTasks = await getTasks(boards_pk);
-    dispatchTasksCB({ type: "renderTasks", tasks: allTasks.results });
+    dispatchTasksCB({
+      type: "renderTasks",
+      tasks: parseTasks(allTasks.results),
+    });
   } catch (error) {
     console.log(error);
   }
@@ -81,7 +103,34 @@ const addTask = async (
 ) => {
   try {
     const newTask = await createTask(boards_pk, { ...task, status: statusId });
+    console.log(task.description);
     dispatchTasksCB({ type: "addTask", task: newTask });
+  } catch (error) {
+    console.log(error);
+  }
+};
+
+const updateTaskStage = async (
+  boards_pk: number,
+  taskId: number,
+  newStatusId: number,
+  task: TaskType | undefined
+) => {
+  try {
+    if (task === undefined) throw new Error("Inavlid Task");
+    const updatedTask = {
+      title: task.title,
+      description:
+        task.image +
+        "||" +
+        task.tags?.join(";") +
+        "||" +
+        task.colors?.join(";") +
+        "||" +
+        task.description,
+      status: newStatusId,
+    };
+    await updateTask(boards_pk, taskId, updatedTask);
   } catch (error) {
     console.log(error);
   }
@@ -111,6 +160,19 @@ const reducer: (
         ...state,
         stages: state.stages.filter((stage) => stage.id !== action.id),
       };
+    case "updateStage":
+      return {
+        ...state,
+        stages: state.stages.map((stage) =>
+          stage.id === action.id
+            ? {
+                id: stage.id,
+                title: action.title,
+                description: action.description,
+              }
+            : stage
+        ),
+      };
   }
 };
 
@@ -122,7 +184,7 @@ const taskReducer: (tasks: TaskType[], action: TaskActions) => TaskType[] = (
     case "renderTasks":
       return action.tasks;
     case "addTask":
-      return [...tasks, action.task];
+      return [...tasks, parseTasks([action.task])[0]];
     case "updateTaskStatus":
       const status_object = action.boardState.stages.find(
         (stage) => stage.id === action.statusId
@@ -132,6 +194,12 @@ const taskReducer: (tasks: TaskType[], action: TaskActions) => TaskType[] = (
           ? { ...task, status_object: status_object }
           : task
       );
+    case "updateTaskDetails":
+      return tasks.map((task) =>
+        task.id === action.task.id ? parseTasks([action.task])[0] : task
+      );
+    case "deleteTask":
+      return tasks.filter((task) => task.id !== action.taskId);
   }
 };
 
@@ -156,34 +224,75 @@ function Board(props: { id: number }) {
           <PlusIcon className="w-6 h-6 text-center m-1" color="white" />
         </button>
       </div>
-      <div className="flex min-h-full overflow-x-auto flex-1">
-        {boardState?.stages.map((stage) => (
-          <Stage
-            id={stage.id}
-            key={stage.id}
-            title={stage.title}
-            description={stage.description}
-            tasks={tasks.filter((task) => task.status_object?.id === stage.id)}
-            stages={boardState.stages}
-            dispatchTasksCB={(taskId: number, statusId: number) =>
-              dispatchTasks({
-                type: "updateTaskStatus",
-                taskId: taskId,
-                statusId: statusId,
-                boardState,
-              })
-            }
-            addTasksCB={(form: FormPost) =>
-              addTask(props.id, stage.id, form, dispatchTasks)
-            }
-            removeStageCB={(id) => removeStage(id)}
-          />
-        ))}
-      </div>
+
+      <DragDropContext
+        onDragEnd={(result) => {
+          if (
+            result.destination === undefined ||
+            result.destination === null ||
+            result.destination.droppableId === result.source.droppableId ||
+            boardState === null
+          )
+            return;
+          updateTaskStage(
+            boardState.id,
+            Number(result.draggableId),
+            Number(result.destination.droppableId),
+            tasks.find((task) => task.id === Number(result.draggableId))
+          );
+          dispatchTasks({
+            type: "updateTaskStatus",
+            taskId: Number(result.draggableId),
+            statusId: Number(result.destination?.droppableId),
+            boardState: boardState,
+          });
+        }}
+      >
+        <div className="flex min-h-full overflow-x-auto flex-1">
+          {boardState?.stages.map((stage) => (
+            <Stage
+              id={stage.id}
+              key={stage.id}
+              title={stage.title}
+              description={stage.description}
+              tasks={tasks.filter(
+                (task) => task.status_object?.id === stage.id
+              )}
+              stages={boardState.stages}
+              addTasksCB={(form: FormPost) =>
+                addTask(props.id, stage.id, form, dispatchTasks)
+              }
+              removeStageCB={(id) => removeStage(id)}
+              updateStageCB={(form: FormPost) =>
+                dispatch({
+                  type: "updateStage",
+                  id: stage.id,
+                  title: form.title,
+                  description: form.description,
+                })
+              }
+              removeTaskCB={(id) =>
+                dispatchTasks({ type: "deleteTask", taskId: id })
+              }
+              dispatchTasksCB={(taskId: number, statusId: number) =>
+                dispatchTasks({
+                  type: "updateTaskStatus",
+                  taskId: taskId,
+                  statusId: statusId,
+                  boardState,
+                })
+              }
+              updateTaskState={(task: TaskType) =>
+                dispatchTasks({ type: "updateTaskDetails", task: task })
+              }
+            />
+          ))}
+        </div>
+      </DragDropContext>
       <Modal open={newStage} closeCB={() => setNewStage(false)}>
         <CreateBoard
           handleSubmit={(stage) => {
-            addStage(stage, dispatch);
+            boardState && addStage(stage, boardState.id, dispatch);
             setNewStage(false);
           }}
           type="Stage"

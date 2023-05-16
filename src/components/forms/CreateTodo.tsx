@@ -1,14 +1,15 @@
 import React, { useState } from "react";
-import { FormPost, Errors, validateForm } from "../types/boardTypes";
+import { FormPost, Errors, validateForm } from "../../types/boardTypes";
+import { TodoPost } from "../../types/actionTypes";
 
-export default function CreateBoard(props: {
-  handleSubmit: (board: FormPost) => void;
-  type: string;
+export default function CreateTodo(props: {
+  handleSubmit: (board: TodoPost) => void;
   closeCB: () => void;
 }) {
-  const [board, setBoard] = useState<FormPost>({
+  const [board, setBoard] = useState({
     title: "",
     description: "",
+    dueDate: "",
   });
   const [errors, setErrors] = useState<Errors<FormPost>>({});
 
@@ -23,7 +24,7 @@ export default function CreateBoard(props: {
 
   return (
     <div className="w-full max-w-lg divide-y divide-gray-200">
-      <h1 className="text-2xl my-2 text-gray-700">Create {props.type}</h1>
+      <h1 className="text-2xl my-2 text-gray-700">Create ToDo</h1>
       <form className="py-4" onSubmit={handleSubmit}>
         <div className="mb-4">
           <label
@@ -64,6 +65,25 @@ export default function CreateBoard(props: {
           {errors.description && (
             <p className="text-red-500">{errors.description}</p>
           )}
+        </div>
+        <div className="mb-4">
+          <label
+            htmlFor="dueDate"
+            className={`${errors.description ? "text-red-500" : ""}`}
+          >
+            Due Date
+          </label>
+          <input
+            type="date"
+            className="w-full border-2 border-gray-200 rounded p-2 my-2 flex-1"
+            name="dueDate"
+            id="dueDate"
+            value={board.dueDate}
+            required={true}
+            onChange={(e) => {
+              setBoard({ ...board, dueDate: e.target.value });
+            }}
+          />
         </div>
         <button
           type="submit"

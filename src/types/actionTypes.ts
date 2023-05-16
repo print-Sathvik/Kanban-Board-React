@@ -17,7 +17,14 @@ type removeStage = {
   id: number;
 };
 
-type BoardActions = renderBoard | addStage | removeStage;
+type updateStage = {
+  type: "updateStage";
+  id: number;
+  title: string;
+  description: string;
+};
+
+type BoardActions = renderBoard | addStage | removeStage | updateStage;
 
 type renderTasks = {
   type: "renderTasks";
@@ -36,6 +43,27 @@ type updateTaskStatus = {
   boardState: BoardState;
 };
 
-type TaskActions = renderTasks | addTaskAction | updateTaskStatus;
+type updateTaskDetails = {
+  type: "updateTaskDetails";
+  task: TaskType;
+};
 
-export type { BoardActions, TaskActions };
+type deleteTask = {
+  type: "deleteTask";
+  taskId: number;
+};
+
+type TaskActions =
+  | renderTasks
+  | addTaskAction
+  | updateTaskStatus
+  | updateTaskDetails
+  | deleteTask;
+
+type TodoPost = {
+  title: string;
+  description: string;
+  dueDate: string;
+};
+
+export type { BoardActions, TaskActions, TodoPost };

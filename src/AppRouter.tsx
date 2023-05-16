@@ -1,11 +1,13 @@
-import { useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { User } from "./types/userTypes";
 import Board from "./components/Board";
 import Home from "./components/Home";
 import { me } from "./utils/apiUtils";
 import { useRoutes } from "raviger";
-import Login from "./components/Login";
 import AppContainer from "./AppContainer";
+
+const Login = React.lazy(() => import("./components/Login"));
+const TodoList = React.lazy(() => import("./components/TodoList"));
 
 const getCurrentUser: (
   setCurrentUser: (currentUser: User) => void
@@ -20,10 +22,21 @@ export default function AppRouter() {
     getCurrentUser(setCurrentUser);
   }, []);
 
+  //Not using lazy load for home and board beacuse those are primary
+  //pages of the site and I want them to be received initially
   const routes = {
     "/": () => <Home currentUser={currentUser} />,
-    "/login": () => <Login />,
+    "/login": () => (
+      <React.Suspense fallback={<div>Loading ...</div>}>
+        <Login />
+      </React.Suspense>
+    ),
     "/boards/:id": ({ id }: { id: string }) => <Board id={Number(id)} />,
+    "/todo": () => (
+      <React.Suspense fallback={<div>Loading ...</div>}>
+        <TodoList />
+      </React.Suspense>
+    ),
   };
 
   let routeResult = useRoutes(routes);

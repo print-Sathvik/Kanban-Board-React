@@ -24,6 +24,7 @@ type StageType = {
   id: number;
   title: string;
   description: string;
+  boardId?: number;
   created_date?: string;
   modified_date?: string;
 };
@@ -45,6 +46,9 @@ type TaskType = {
   id: number;
   title: string;
   description: string;
+  image?: string;
+  tags?: string[];
+  colors?: string[];
   status: number;
   board?: number;
   board_object?: Board;

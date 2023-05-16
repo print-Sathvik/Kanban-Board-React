@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { FormPost, Errors, validateForm } from "../types/boardTypes";
+import { FormPost, Errors, validateForm } from "../../types/boardTypes";
 
 export default function EditForm(props: {
   handleSubmit: (board: FormPost) => void;
